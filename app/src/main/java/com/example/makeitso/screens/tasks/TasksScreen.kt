@@ -1,19 +1,3 @@
-/*
-Copyright 2022 Google LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
- */
-
 package com.example.makeitso.screens.tasks
 
 import android.annotation.SuppressLint
@@ -28,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.makeitso.R.drawable as AppIcon
 import com.example.makeitso.R.string as AppText
 import com.example.makeitso.common.composable.ActionToolbar
@@ -42,7 +27,11 @@ fun TasksScreen(
   openScreen: (String) -> Unit,
   viewModel: TasksViewModel = hiltViewModel()
 ) {
+  // Recoge el flujo de tareas como un estado. 'tasks' ahora es un State<List<Task>>
+  val tasks = viewModel.tasks.collectAsStateWithLifecycle(emptyList())
+
   TasksScreenContent(
+    tasks = tasks, // Pasa el objeto State<List<Task>> al contenido
     onAddClick = viewModel::onAddClick,
     onSettingsClick = viewModel::onSettingsClick,
     onTaskCheckChange = viewModel::onTaskCheckChange,
@@ -58,6 +47,7 @@ fun TasksScreen(
 @ExperimentalMaterialApi
 fun TasksScreenContent(
   modifier: Modifier = Modifier,
+  tasks: State<List<Task>>, // Actualizado para aceptar State<List<Task>>
   onAddClick: ((String) -> Unit) -> Unit,
   onSettingsClick: ((String) -> Unit) -> Unit,
   onTaskCheckChange: (Task) -> Unit,
@@ -87,10 +77,11 @@ fun TasksScreenContent(
       Spacer(modifier = Modifier.smallSpacer())
 
       LazyColumn {
-        items(emptyList<Task>(), key = { it.id }) { taskItem ->
+        // Usa tasks.value para acceder a la lista real dentro del estado
+        items(tasks.value, key = { it.id }) { taskItem ->
           TaskItem(
             task = taskItem,
-            options = listOf(),
+            options = listOf(), // Asegúrate de que las opciones se obtengan correctamente si son dinámicas
             onCheckChange = { onTaskCheckChange(taskItem) },
             onActionClick = { action -> onTaskActionClick(openScreen, taskItem, action) }
           )
@@ -106,6 +97,8 @@ fun TasksScreenContent(
 fun TasksScreenPreview() {
   MakeItSoTheme {
     TasksScreenContent(
+      // Para la vista previa, crea un estado mutable con una lista vacía o de ejemplo
+      tasks = remember { mutableStateOf(emptyList()) },
       onAddClick = { },
       onSettingsClick = { },
       onTaskCheckChange = { },

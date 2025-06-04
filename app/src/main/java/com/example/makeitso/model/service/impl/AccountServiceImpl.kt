@@ -16,6 +16,7 @@ limitations under the License.
 
 package com.example.makeitso.model.service.impl
 
+import android.util.Log
 import com.example.makeitso.model.User
 import com.example.makeitso.model.service.AccountService
 import com.example.makeitso.model.service.trace
@@ -58,23 +59,32 @@ class AccountServiceImpl @Inject constructor(private val auth: FirebaseAuth) : A
   }
 
   override suspend fun linkAccount(email: String, password: String) {
-    val credential = EmailAuthProvider.getCredential(email, password)
-    auth.currentUser!!.linkWithCredential(credential).await()
-
+    try {
+      val user = auth.currentUser
+      if (user == null) {
+        Log.e("AccountService", "No hay usuario autenticado para vincular")
+        throw IllegalStateException("Usuario no autenticado")
+      }
+      Log.d("AccountService", "Usuario actual: ${user.uid}, isAnonymous: ${user.isAnonymous}")
+      val credential = EmailAuthProvider.getCredential(email, password)
+      user.linkWithCredential(credential).await()
+      Log.d("AccountService", "Cuenta vinculada correctamente")
+    } catch (e: Exception) {
+      Log.e("AccountService", "Error al vincular cuenta: ${e.message}", e)
+      throw e
+    }
   }
+
 
   override suspend fun deleteAccount() {
     auth.currentUser!!.delete().await()
   }
 
   override suspend fun signOut() {
-    if (auth.currentUser!!.isAnonymous) {
-      auth.currentUser!!.delete()
-    }
+
     auth.signOut()
 
-    // Sign the user back in anonymously.
-    createAnonymousAccount()
+
   }
 
   companion object {
